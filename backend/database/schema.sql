@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS transaction (
   transaction_id SERIAL PRIMARY KEY,
   account_id INTEGER NOT NULL REFERENCES account(account_id) ON DELETE CASCADE,
   category_id INTEGER NOT NULL REFERENCES category(category_id) ON DELETE SET NULL,
+  budget_id INTEGER REFERENCES budget(budget_id) ON DELETE SET NULL,
   amount NUMERIC(12,2) NOT NULL,
   transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('income', 'expense', 'transfer')),
   transaction_date DATE NOT NULL,

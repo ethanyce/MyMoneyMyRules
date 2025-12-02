@@ -80,27 +80,31 @@ exports.updateBudget = async (req, res) => {
       return res.status(404).json({ error: 'Budget not found' });
     }
 
-    // Ensure category exists or create it
-    let cat = await db.query(
-      'SELECT category_id FROM category WHERE user_id = $1 AND category_name = $2',
-      [userId, category_name]
+    const existingCategoryId = existing.rows[0].category_id;
+
+    // Get the current category name
+    const currentCatResult = await db.query(
+      `SELECT category_name FROM category WHERE category_id = $1`,
+      [existingCategoryId]
     );
-    if (cat.rows.length === 0) {
-      cat = await db.query(
-        `INSERT INTO category (user_id, category_name, category_type)
-         VALUES ($1, $2, $3)
-         RETURNING category_id`,
-        [userId, category_name, category_type || 'expense']
+    const currentCategoryName = currentCatResult.rows.length > 0 ? currentCatResult.rows[0].category_name : null;
+
+    // If the category name has changed, rename the category instead of creating a new one
+    if (category_name && category_name !== currentCategoryName) {
+      await db.query(
+        `UPDATE category
+         SET category_name = $1, category_type = $2
+         WHERE category_id = $3 AND user_id = $4`,
+        [category_name, category_type || 'expense', existingCategoryId, userId]
       );
     }
-    const categoryId = cat.rows[0].category_id;
 
-    // Update the budget record
+    // Update the budget record (amounts and dates)
     await db.query(
       `UPDATE budget
-       SET category_id = $1, amount_limit = $2, start_date = $3, end_date = $4
-       WHERE budget_id = $5 AND user_id = $6`,
-      [categoryId, amount_limit, start_date, end_date, budgetId, userId]
+       SET amount_limit = $1, start_date = $2, end_date = $3
+       WHERE budget_id = $4 AND user_id = $5`,
+      [amount_limit, start_date, end_date, budgetId, userId]
     );
 
     res.json({ success: true });
@@ -165,5 +169,48 @@ exports.getBudgetSummary = async (req, res) => {
   } catch (err) {
     console.error('Error fetching budget summary:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+}
+
+exports.checkOverlappingBudgets = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { category_name, start_date, end_date } = req.query;
+
+    if (!category_name || !start_date || !end_date) {
+      return res.json({ hasOverlap: false });
+    }
+
+    // Get category_id
+    const catResult = await db.query(
+      'SELECT category_id FROM category WHERE user_id = $1 AND category_name = $2',
+      [userId, category_name]
+    );
+
+    if (catResult.rows.length === 0) {
+      return res.json({ hasOverlap: false });
+    }
+
+    const categoryId = catResult.rows[0].category_id;
+
+    // Check for overlapping budgets
+    const overlapResult = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM budget
+       WHERE user_id = $1
+         AND category_id = $2
+         AND (
+           (start_date <= $3 AND end_date >= $3)
+           OR (start_date <= $4 AND end_date >= $4)
+           OR (start_date >= $3 AND end_date <= $4)
+         )`,
+      [userId, categoryId, start_date, end_date]
+    );
+
+    const hasOverlap = parseInt(overlapResult.rows[0].count) > 0;
+    res.json({ hasOverlap });
+  } catch (error) {
+    console.error('Error checking budget overlap:', error);
+    res.status(500).json({ error: 'Failed to check budget overlap' });
   }
 }

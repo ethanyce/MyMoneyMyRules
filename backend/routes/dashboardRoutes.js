@@ -6,5 +6,6 @@ const ctrl = require('../controllers/dashboardController');
 router.get('/dashboard/metrics', auth(), ctrl.metrics);
 router.get('/dashboard/budget', auth(), ctrl.budget);
 router.get('/dashboard/categories', auth(), ctrl.categories);
+router.get('/dashboard/upcoming', auth(), ctrl.showUpcoming);
 
 module.exports = router;

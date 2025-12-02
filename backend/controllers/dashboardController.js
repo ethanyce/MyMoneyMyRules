@@ -89,7 +89,6 @@ exports.categories = async (req, res) =>
     const { userId } = req.user;
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
     const { rows } = await db.query(
       `SELECT c.category_name AS name, COALESCE(SUM(t.amount),0) AS total
@@ -99,16 +98,61 @@ exports.categories = async (req, res) =>
        WHERE a.user_id = $1
          AND t.transaction_type = 'expense'
          AND t.transaction_date >= $2
-         AND t.transaction_date < $3
+         AND t.transaction_date <= $2
        GROUP BY c.category_name
        ORDER BY total DESC
        LIMIT 5`,
-      [userId, monthStart, nextMonthStart]
+      [userId, monthStart]
     );
 
     res.json(rows);
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }  
+}
+
+exports.showUpcoming = async (req, res) => {
+    try {
+    const { userId } = req.user;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const { rows } = await db.query(
+      `SELECT b.budget_id AS id,
+              c.category_name AS title,
+              b.amount_limit AS amount,
+              b.end_date AS due_date,
+              COALESCE(
+                (SELECT SUM(t.amount)
+                 FROM transaction t
+                 JOIN account a ON t.account_id = a.account_id
+                 WHERE t.category_id = b.category_id
+                   AND t.transaction_type = 'expense'
+                   AND t.transaction_date >= b.start_date
+                   AND t.transaction_date <= b.end_date
+                   AND a.user_id = $1
+                ), 0
+              ) AS spent
+       FROM budget b
+       JOIN category c ON b.category_id = c.category_id
+       WHERE b.user_id = $1
+         AND b.start_date <= $2
+         AND b.end_date >= $2
+         AND (
+           (b.start_date >= $3 AND b.start_date <= $4)
+           OR (b.end_date >= $3 AND b.end_date <= $4)
+           OR (b.start_date <= $3 AND b.end_date >= $4)
+         )
+       ORDER BY b.end_date ASC
+       LIMIT 5`,
+      [userId, now, monthStart, monthEnd]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching upcoming budgets:', error);
+    res.status(500).json({ error: 'Failed to fetch upcoming budgets' });
   }
 }
