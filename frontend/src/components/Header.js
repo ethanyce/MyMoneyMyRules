@@ -16,10 +16,8 @@ const Header = () => {
   return (
     <header className="header">
       <div className="header-left">
-        <div>
-          <h1 className="header-title">M3R</h1>
-          <p className="header-subtitle">Track your expenses, manage your budget, and achieve your financial goals</p>
-        </div>
+        <h1 className="header-title">M3R</h1>
+        <p className="header-subtitle">Track your expenses, manage your budget, and achieve your financial goals</p>
       </div>
 
       <div className="header-center">

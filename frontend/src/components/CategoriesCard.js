@@ -9,9 +9,6 @@ const CategoriesCard = ({ categories, onAddTransaction }) => {
     <div className="categories-card">
       <div className="categories-header">
         <h3 className="card-title">Top Spending Categories</h3>
-        <button className="btn-add-transaction" onClick={onAddTransaction}>
-          <span>+</span> Add Transaction
-        </button>
       </div>
       <div className="categories-content">
         {hasCategories ? (
