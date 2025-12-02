@@ -7,8 +7,7 @@ A full-stack personal finance tracking application built with React and Node.js,
 - **Dashboard**: View key financial metrics, monthly budget, spending categories, and upcoming reminders
 - **Transaction History**: Track all income and expenses with search and filter capabilities
 - **Reports**: Analyze spending patterns with monthly and yearly charts
-- **Reminders**: Set up payment reminders for bills and upcoming expenses
-
+- **Budget Planning**: Set up budgets and see if you're over the limit or within the limit of your budget/s.
 ## Tech Stack
 
 - **Frontend**: React 18, React Router, Axios, Recharts
@@ -144,7 +143,7 @@ personal-finance-tracker/
 ## Notes
 
 - The application is designed to work with Supabase Row Level Security (RLS). The default policies allow all operations. In production, you should implement proper authentication and restrict access based on user_id.
-- The monthly budget is currently set to $3,000 by default. This can be made configurable in future updates.
+
 
 ## License
 
